@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace ObjectDatabase
@@ -38,9 +39,20 @@ namespace ObjectDatabase
             {
                 try
                 {
-                    PropertyInfo propertyInfo = type.GetProperty(serializedData.Value.Name);
+                    PropertyInfo propertyInfo = type.GetProperty(serializedData.Key);
                     if (propertyInfo != null)
                         propertyInfo.SetValue(this, serializedData.Value.Value);
+                    else
+                    {
+                        propertyInfo = type.GetProperties().Where(prop =>
+                        {
+                            var att =
+                                prop.GetCustomAttribute<SerializePropertyAttribute>();
+                            return att != null && serializedData.Key == att?.Name;
+                        }).FirstOrDefault();
+                        if (propertyInfo != null)
+                            propertyInfo.SetValue(this, serializedData.Value.Value);
+                    }
                 }
                 catch
                 {

@@ -7,7 +7,6 @@ namespace ObjectDatabase.Tests.Models
 
         [IgnoreProperty] public int Id { get; set; } = 123456;
 
-        [SerializeProperty("location")]
-        public string Location { get; set; } = "USA";
+        [SerializeProperty("loc")] public string Location { get; set; } = "USA";
     }
 }
