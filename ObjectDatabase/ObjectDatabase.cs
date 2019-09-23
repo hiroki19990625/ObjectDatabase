@@ -5,7 +5,7 @@ namespace ObjectDatabase
 {
     public class ObjectDatabase
     {
-        private readonly Dictionary<string, IDataTable> tables = new Dictionary<string, IDataTable>();
+        private readonly Dictionary<string, IDataTable> _tables = new Dictionary<string, IDataTable>();
 
         private readonly OleDbConnection _connection;
 
@@ -25,13 +25,13 @@ namespace ObjectDatabase
 
         public void AddTable(string name, IDataTable dataTable)
         {
-            tables[dataTable.Name] = dataTable;
+            _tables[dataTable.Name] = dataTable;
             dataTable.Fetch(_connection);
         }
 
         public IDataTable GetTable(string name)
         {
-            return tables[name];
+            return _tables[name];
         }
     }
 }

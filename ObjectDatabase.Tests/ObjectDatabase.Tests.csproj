@@ -4,11 +4,12 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{5EFAF14E-7360-4E3D-8562-338ADE78860D}</ProjectGuid>
+    <ProjectGuid>{5745845C-747D-4E76-8BAF-E9A5120E0D94}</ProjectGuid>
+    <ProjectTypeGuids>{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ObjectDatabase</RootNamespace>
-    <AssemblyName>ObjectDatabase</AssemblyName>
+    <RootNamespace>ObjectDatabase.Tests</RootNamespace>
+    <AssemblyName>ObjectDatabase.Tests</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -36,18 +37,20 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="nunit.framework, Version=3.5.0.0, Culture=neutral, PublicKeyToken=2638cd05610744eb">
+      <HintPath>..\packages\NUnit.3.5.0\lib\net45\nunit.framework.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DataModel.cs" />
-    <Compile Include="DataTable.cs" />
-    <Compile Include="IDataModel.cs" />
-    <Compile Include="IDataTable.cs" />
-    <Compile Include="IgnorePropertyAttribute.cs" />
-    <Compile Include="ISerializedData.cs" />
-    <Compile Include="ObjectDatabase.cs" />
+    <Compile Include="Models\TestDataModel.cs" />
+    <Compile Include="Tests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SerializedData.cs" />
-    <Compile Include="SerializePropertyAttribute.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ObjectDatabase\ObjectDatabase.csproj">
+      <Project>{5efaf14e-7360-4e3d-8562-338ade78860d}</Project>
+      <Name>ObjectDatabase</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
