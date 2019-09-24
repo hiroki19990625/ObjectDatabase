@@ -6,6 +6,7 @@ namespace ObjectDatabase
     public class SerializePropertyAttribute : Attribute
     {
         public string Name { get; }
+        public bool IsKey { get; set; }
 
         public SerializePropertyAttribute(string name)
         {

@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace ObjectDatabase
 {
-    public class DataModel : IDataModel
+    public abstract class DataModel : IDataModel
     {
         public Dictionary<string, ISerializedData> Serialize()
         {

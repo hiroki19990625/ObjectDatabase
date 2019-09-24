@@ -1,16 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Data.OleDb;
+using System.Linq;
 
 namespace ObjectDatabase
 {
     public class DataTable<T> : IDataTable where T : IDataModel, new()
     {
         private OleDbConnection _connection;
+        private readonly List<T> _data = new List<T>();
 
         public string Name { get; }
-
-        public List<T> Data { get; } = new List<T>();
 
         public DataTable(string name)
         {
@@ -35,19 +35,104 @@ namespace ObjectDatabase
 
                 T dataModel = new T();
                 dataModel.Deserialize(serializedData);
-                Data.Add(dataModel);
+                _data.Add(dataModel);
             }
+
+            reader.Close();
+            command.Dispose();
+        }
+
+        public void Insert(params T[] models)
+        {
+            OleDbCommand[] commands = CreateInsertCommands(models);
+            int idx = 0;
+            foreach (OleDbCommand oleDbCommand in commands)
+            {
+                int c = oleDbCommand.ExecuteNonQuery();
+                if (c == 1)
+                    _data.Add(models[idx++]);
+            }
+        }
+
+        public int Delete(Func<T, bool> where)
+        {
+            IEnumerable<T> it = _data.Where(where);
+            int count = 0;
+            foreach (T model in it)
+            {
+                _data.Remove(model);
+                count++;
+            }
+
+            return count;
         }
 
         public void Sync()
         {
-            foreach (T dataModel in Data)
+            foreach (T dataModel in _data)
             {
                 Dictionary<string, ISerializedData> serializedData = dataModel.Serialize();
                 foreach (KeyValuePair<string, ISerializedData> data in serializedData)
                 {
                 }
             }
+        }
+
+        private OleDbCommand[] CreateInsertCommands(T[] models)
+        {
+            List<OleDbCommand> cmds = new List<OleDbCommand>();
+            foreach (T model in models)
+            {
+                var fields = model.Serialize();
+                string cmd = $"insert into {Name} (";
+                foreach (KeyValuePair<string, ISerializedData> field in fields)
+                {
+                    cmd += field.Key + ", ";
+                }
+
+                var remove = cmd.Remove(cmd.Length - 2, 2);
+                cmd = remove + ") values(";
+                foreach (KeyValuePair<string, ISerializedData> field in fields)
+                {
+                    cmd += "?, ";
+                }
+
+                remove = cmd.Remove(cmd.Length - 2, 2);
+                cmd = remove + ")";
+
+                OleDbCommand command = new OleDbCommand(cmd, _connection);
+                foreach (KeyValuePair<string, ISerializedData> serializedData in fields)
+                {
+                    command.Parameters.Add(serializedData.Value.Value);
+                }
+
+                cmds.Add(command);
+            }
+
+            return cmds.ToArray();
+        }
+
+        private OleDbCommand[] CreateDeleteCommands(IEnumerable<T> it)
+        {
+            List<OleDbCommand> cmds = new List<OleDbCommand>();
+            foreach (T model in it)
+            {
+                var fields = model.Serialize();
+                string cmd = $"delete from {Name} where ";
+                foreach (KeyValuePair<string, ISerializedData> serializedData in fields)
+                {
+                    if (serializedData.Value.TypeCode == TypeCode.String)
+                        cmd += $"{serializedData.Key} = '{serializedData.Value}' && ";
+                    else
+                        cmd += $"{serializedData.Key} = {serializedData.Value} && ";
+                }
+
+                cmd = cmd.Remove(cmd.Length - 4, 4);
+                OleDbCommand command = new OleDbCommand(cmd, _connection);
+                cmds.Add(command);
+            }
+
+            return cmds.ToArray();
         }
     }
 }
