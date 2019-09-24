@@ -5,19 +5,38 @@ using System.Linq;
 
 namespace ObjectDatabase
 {
+    /// <summary>
+    /// データベースのテーブルを表します。
+    /// </summary>
+    /// <typeparam name="T">データ定義の型</typeparam>
     public class DataTable<T> : IDataTable where T : IDataModel, new()
     {
         private OleDbConnection _connection;
         private readonly List<T> _data = new List<T>();
 
+        /// <summary>
+        /// テーブルの名前
+        /// </summary>
         public string Name { get; }
+
+        /// <summary>
+        /// テーブルに格納されているデータ数
+        /// </summary>
         public int Count => _data.Count;
 
+        /// <summary>
+        /// テーブル名からインスタンスを作成します。
+        /// </summary>
+        /// <param name="name">テーブル名</param>
         public DataTable(string name)
         {
             Name = name;
         }
 
+        /// <summary>
+        /// データベースのデータをフェッチします。
+        /// </summary>
+        /// <param name="connection">データベースのコネクション</param>
         public void Fetch(OleDbConnection connection)
         {
             _connection = connection;
@@ -43,6 +62,10 @@ namespace ObjectDatabase
             command.Dispose();
         }
 
+        /// <summary>
+        /// データベースにデータを挿入します。
+        /// </summary>
+        /// <param name="models">挿入するデータ</param>
         public void Insert(params T[] models)
         {
             OleDbCommand[] commands = CreateInsertCommands(models);
@@ -55,6 +78,11 @@ namespace ObjectDatabase
             }
         }
 
+        /// <summary>
+        /// データベースのデータを削除します。
+        /// </summary>
+        /// <param name="where">条件</param>
+        /// <returns>データベースの変更数</returns>
         public int Delete(Func<T, bool> where)
         {
             T[] models = _data.Where(where).ToArray();
@@ -71,6 +99,9 @@ namespace ObjectDatabase
             return count;
         }
 
+        /// <summary>
+        /// データベースとデータを同期します。
+        /// </summary>
         public void Sync()
         {
             foreach (T dataModel in _data)

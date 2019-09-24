@@ -3,6 +3,9 @@ using System.Data.OleDb;
 
 namespace ObjectDatabase
 {
+    /// <summary>
+    /// データベースへのアクセス、テーブルの管理をします。
+    /// </summary>
     public class ObjectDatabase
     {
         private readonly Dictionary<string, IDataTable> _tables = new Dictionary<string, IDataTable>();

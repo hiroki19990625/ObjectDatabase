@@ -5,8 +5,15 @@ using System.Reflection;
 
 namespace ObjectDatabase
 {
+    /// <summary>
+    /// データベースのデータ定義を表します。
+    /// </summary>
     public abstract class DataModel : IDataModel
     {
+        /// <summary>
+        /// プロパティを全て取得し、データをシリアル化します。
+        /// </summary>
+        /// <returns>シリアル化されたテータ</returns>
         public Dictionary<string, ISerializedData> Serialize()
         {
             Type type = GetType();
@@ -32,6 +39,10 @@ namespace ObjectDatabase
             return properties;
         }
 
+        /// <summary>
+        /// シリアル化されたデータから、プロパティの値を復元します。
+        /// </summary>
+        /// <param name="data">シリアル化されたデータ</param>
         public void Deserialize(Dictionary<string, ISerializedData> data)
         {
             Type type = GetType();
