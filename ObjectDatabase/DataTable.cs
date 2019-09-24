@@ -11,6 +11,7 @@ namespace ObjectDatabase
         private readonly List<T> _data = new List<T>();
 
         public string Name { get; }
+        public int Count => _data.Count;
 
         public DataTable(string name)
         {
@@ -26,7 +27,7 @@ namespace ObjectDatabase
             while (reader.Read())
             {
                 Dictionary<string, ISerializedData> serializedData = new Dictionary<string, ISerializedData>();
-                for (int i = 0; i > reader.FieldCount; i++)
+                for (int i = 0; i < reader.FieldCount; i++)
                 {
                     serializedData.Add(reader.GetName(i),
                         new SerializedData(reader.GetName(i), Type.GetTypeCode(reader.GetFieldType(i)),
@@ -56,10 +57,13 @@ namespace ObjectDatabase
 
         public int Delete(Func<T, bool> where)
         {
-            IEnumerable<T> it = _data.Where(where);
+            T[] models = _data.Where(where).ToArray();
             int count = 0;
-            foreach (T model in it)
+            int idx = 0;
+            OleDbCommand[] cmds = CreateDeleteCommands(models);
+            foreach (T model in models)
             {
+                cmds[idx++].ExecuteNonQuery();
                 _data.Remove(model);
                 count++;
             }
@@ -103,7 +107,7 @@ namespace ObjectDatabase
                 OleDbCommand command = new OleDbCommand(cmd, _connection);
                 foreach (KeyValuePair<string, ISerializedData> serializedData in fields)
                 {
-                    command.Parameters.Add(serializedData.Value.Value);
+                    command.Parameters.Add(new OleDbParameter(serializedData.Key, serializedData.Value.Value));
                 }
 
                 cmds.Add(command);
@@ -122,9 +126,9 @@ namespace ObjectDatabase
                 foreach (KeyValuePair<string, ISerializedData> serializedData in fields)
                 {
                     if (serializedData.Value.TypeCode == TypeCode.String)
-                        cmd += $"{serializedData.Key} = '{serializedData.Value}' && ";
+                        cmd += $"{serializedData.Key} = '{serializedData.Value.Value}' AND ";
                     else
-                        cmd += $"{serializedData.Key} = {serializedData.Value} && ";
+                        cmd += $"{serializedData.Key} = {serializedData.Value.Value} AND ";
                 }
 
                 cmd = cmd.Remove(cmd.Length - 4, 4);

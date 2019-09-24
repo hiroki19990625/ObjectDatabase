@@ -54,9 +54,9 @@ namespace ObjectDatabase
                             propertyInfo.SetValue(this, serializedData.Value.Value);
                     }
                 }
-                catch
+                catch (Exception e)
                 {
-                    // ignored
+                    Console.WriteLine(e);
                 }
             }
         }
