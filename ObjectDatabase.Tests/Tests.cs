@@ -39,17 +39,14 @@ namespace ObjectDatabase.Tests
             DataTable<TestDataModel> table = new DataTable<TestDataModel>("Test");
             database.AddTable(table);
 
-            table.Delete(model =>
-            {
-                return model.Name == "Alice";
-            });
+            table.Delete(model => { return model.Name == "Alice"; });
 
-            /*table.Insert(new TestDataModel
+            table.Insert(new TestDataModel
             {
                 Name = "Alice",
                 Age = 20,
                 Location = "US"
-            });*/
+            });
         }
     }
 }
