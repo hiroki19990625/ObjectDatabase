@@ -99,6 +99,21 @@ namespace ObjectDatabase
             return count;
         }
 
+        public IEnumerable<TResult> Select<TResult>(Func<T, TResult> select)
+        {
+            return _data.Select(select);
+        }
+
+        public IEnumerable<T> Where(Func<T, bool> predicate)
+        {
+            return _data.Where(predicate);
+        }
+
+        public T[] ToArray()
+        {
+            return _data.ToArray();
+        }
+
         /// <summary>
         /// データベースとデータを同期します。
         /// </summary>
