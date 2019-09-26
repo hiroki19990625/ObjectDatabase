@@ -70,12 +70,28 @@ namespace ObjectDatabase
         {
             OleDbCommand[] commands = CreateInsertCommands(models);
             int idx = 0;
-            foreach (OleDbCommand oleDbCommand in commands)
+
+            OleDbTransaction transaction = _connection.BeginTransaction();
+            try
             {
-                int c = oleDbCommand.ExecuteNonQuery();
-                if (c == 1)
-                    _data.Add(models[idx++]);
+                foreach (OleDbCommand oleDbCommand in commands)
+                {
+                    oleDbCommand.Transaction = transaction;
+                    int c = oleDbCommand.ExecuteNonQuery();
+                    if (c == 1)
+                        _data.Add(models[idx++]);
+
+                    transaction.Commit();
+                    oleDbCommand.Dispose();
+                }
             }
+            catch
+            {
+                transaction.Rollback();
+                Console.WriteLine("Rollback!");
+            }
+
+            transaction.Dispose();
         }
 
         /// <summary>
@@ -88,13 +104,27 @@ namespace ObjectDatabase
             T[] models = _data.Where(where).ToArray();
             int count = 0;
             int idx = 0;
+            OleDbTransaction transaction = _connection.BeginTransaction();
             OleDbCommand[] cmds = CreateDeleteCommands(models);
-            foreach (T model in models)
+            try
             {
-                cmds[idx++].ExecuteNonQuery();
-                _data.Remove(model);
-                count++;
+                foreach (T model in models)
+                {
+                    cmds[idx].Transaction = transaction;
+                    cmds[idx++].ExecuteNonQuery();
+                    _data.Remove(model);
+                    count++;
+
+                    transaction.Commit();
+                }
             }
+            catch
+            {
+                transaction.Rollback();
+                Console.WriteLine("Rollback!");
+            }
+
+            transaction.Dispose();
 
             return count;
         }

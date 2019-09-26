@@ -59,6 +59,11 @@ namespace ObjectDatabase
 
         public void Dispose()
         {
+            foreach (KeyValuePair<string, IDataTable> dataTable in _tables)
+            {
+                dataTable.Value.Sync();
+            }
+
             _connection.Close();
         }
     }

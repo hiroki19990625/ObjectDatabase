@@ -42,8 +42,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Models\ClassInClassDataModel.cs" />
     <Compile Include="Models\TestDataModel.cs" />
-    <Compile Include="Tests.cs" />
+    <Compile Include="SerializerTests.cs" />
+    <Compile Include="TableTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
