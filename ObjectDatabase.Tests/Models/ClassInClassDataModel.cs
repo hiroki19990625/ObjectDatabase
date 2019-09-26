@@ -7,7 +7,7 @@ namespace ObjectDatabase.Tests.Models
 
         public string TaskId { get; set; }
 
-        [RelationProperty("Task", nameof(TaskId), nameof(WorkTask.TaskId))]
+        [IgnoreProperty, RelationProperty("Task", nameof(TaskId), nameof(WorkTask.TaskId))]
         public WorkTask Task { get; set; }
 
         public class WorkTask

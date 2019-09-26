@@ -66,6 +66,7 @@ namespace ObjectDatabase.Tests
             {
                 Name = "HogeProject",
                 Description = "HogeHoge",
+                TaskId = "011",
                 Task = new ClassInClassDataModel.WorkTask
                 {
                     Name = "HugaTask",

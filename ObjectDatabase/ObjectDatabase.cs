@@ -13,13 +13,17 @@ namespace ObjectDatabase
 
         private readonly OleDbConnection _connection;
 
+        private readonly string _fetchQuery;
+
         /// <summary>
         /// Accessファイルを指定してデータベースを開始します。
         /// </summary>
         /// <param name="file">Accessファイル</param>
         /// <param name="version">プロバイダーのバージョン</param>
-        public ObjectDatabase(string file, string version = "12.0")
+        public ObjectDatabase(string file, string version = "12.0", string fetchQuery = "select * from {0}")
         {
+            _fetchQuery = fetchQuery;
+
             _connection = new OleDbConnection
             {
                 ConnectionString = $"Provider=Microsoft.ACE.OLEDB.{version}; Data Source={file}"
@@ -44,6 +48,7 @@ namespace ObjectDatabase
         public void AddTable(string name, IDataTable dataTable)
         {
             _tables[dataTable.Name] = dataTable;
+            dataTable.FetchQuery = _fetchQuery;
             dataTable.Fetch(_connection);
         }
 

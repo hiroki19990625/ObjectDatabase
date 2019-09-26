@@ -19,6 +19,8 @@ namespace ObjectDatabase
         /// </summary>
         public string Name { get; }
 
+        public string FetchQuery { get; set; }
+
         /// <summary>
         /// テーブルに格納されているデータ数
         /// </summary>
@@ -41,7 +43,7 @@ namespace ObjectDatabase
         {
             _connection = connection;
 
-            OleDbCommand command = new OleDbCommand($"select * from {Name}", connection);
+            OleDbCommand command = new OleDbCommand(string.Format(FetchQuery, Name), connection);
             OleDbDataReader reader = command.ExecuteReader();
             while (reader.Read())
             {
