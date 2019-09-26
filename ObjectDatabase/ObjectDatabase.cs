@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data.OleDb;
 
 namespace ObjectDatabase
@@ -6,7 +7,7 @@ namespace ObjectDatabase
     /// <summary>
     /// データベースへのアクセス、テーブルの管理をします。
     /// </summary>
-    public class ObjectDatabase
+    public class ObjectDatabase : IDisposable
     {
         private readonly Dictionary<string, IDataTable> _tables = new Dictionary<string, IDataTable>();
 
@@ -54,6 +55,11 @@ namespace ObjectDatabase
         public IDataTable GetTable(string name)
         {
             return _tables[name];
+        }
+
+        public void Dispose()
+        {
+            _connection.Close();
         }
     }
 }

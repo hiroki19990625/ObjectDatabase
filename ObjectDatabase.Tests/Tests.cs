@@ -60,7 +60,14 @@ namespace ObjectDatabase.Tests
             stopwatch.Stop();
             Console.WriteLine($"Insert {stopwatch.ElapsedMilliseconds}ms");
 
+            stopwatch = Stopwatch.StartNew();
+            table.ToArray()[0].Age = 21;
+            table.Sync();
+            stopwatch.Stop();
+            Console.WriteLine($"Sync {stopwatch.ElapsedMilliseconds}ms");
+
             Assert.True(table.Where(model => true).First().Name == "Alice");
+            Assert.True(table.Select(model => model.Age).First() == 21);
         }
     }
 }

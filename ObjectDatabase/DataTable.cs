@@ -41,7 +41,7 @@ namespace ObjectDatabase
         {
             _connection = connection;
 
-            OleDbCommand command = new OleDbCommand("select * from " + Name, connection);
+            OleDbCommand command = new OleDbCommand($"select * from {Name}", connection);
             OleDbDataReader reader = command.ExecuteReader();
             while (reader.Read())
             {
@@ -119,12 +119,10 @@ namespace ObjectDatabase
         /// </summary>
         public void Sync()
         {
-            foreach (T dataModel in _data)
+            OleDbCommand[] cmds = CreateUpdateCommands();
+            foreach (OleDbCommand cmd in cmds)
             {
-                Dictionary<string, ISerializedData> serializedData = dataModel.Serialize();
-                foreach (KeyValuePair<string, ISerializedData> data in serializedData)
-                {
-                }
+                cmd.ExecuteNonQuery();
             }
         }
 
@@ -183,6 +181,28 @@ namespace ObjectDatabase
             }
 
             return cmds.ToArray();
+        }
+
+        private OleDbCommand[] CreateUpdateCommands()
+        {
+            List<OleDbCommand> commands = new List<OleDbCommand>();
+            foreach (T dataModel in _data)
+            {
+                Dictionary<string, ISerializedData> serializedData = dataModel.Serialize();
+                string cmd = $"update {Name} set";
+                foreach (KeyValuePair<string, ISerializedData> data in serializedData)
+                {
+                    if (data.Value.TypeCode == TypeCode.String)
+                        cmd += $" {data.Key}='{data.Value.Value}',";
+                    else
+                        cmd += $" {data.Key}={data.Value.Value},";
+                }
+
+                OleDbCommand command = new OleDbCommand(cmd.Remove(cmd.Length - 1, 1), _connection);
+                commands.Add(command);
+            }
+
+            return commands.ToArray();
         }
     }
 }
