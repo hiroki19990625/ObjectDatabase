@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data.OleDb;
 using System.Linq;
+using System.Reflection;
 
 namespace ObjectDatabase
 {
@@ -129,6 +130,49 @@ namespace ObjectDatabase
             transaction.Dispose();
 
             return count;
+        }
+
+        public void Union<TUnionTarget>(DataTable<TUnionTarget> table) where TUnionTarget : IDataModel, new()
+        {
+            Type t = typeof(TUnionTarget);
+            Type myT = typeof(T);
+            string unionField = null;
+            PropertyInfo p = myT.GetProperties()
+                .FirstOrDefault(prop =>
+                {
+                    UnionTargetAttribute att = prop.GetCustomAttribute<UnionTargetAttribute>();
+                    if (att != null)
+                    {
+                        unionField = att.FieldName;
+                        return true;
+                    }
+
+                    return false;
+                });
+            if (p != null && !string.IsNullOrWhiteSpace(unionField))
+            {
+                if (p.PropertyType == t)
+                {
+                    PropertyInfo up = t.GetProperty(unionField);
+                    PropertyInfo mp = myT.GetProperty(unionField);
+
+                    if (up != null && mp != null)
+                    {
+                        foreach (T dataModel in ToArray())
+                        {
+                            foreach (TUnionTarget unionTarget in table.ToArray())
+                            {
+                                object objA = up.GetValue(unionTarget);
+                                object objB = mp.GetValue(dataModel);
+                                if (objA.Equals(objB))
+                                {
+                                    p.SetValue(dataModel, unionTarget);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         public IEnumerable<TResult> Select<TResult>(Func<T, TResult> select)

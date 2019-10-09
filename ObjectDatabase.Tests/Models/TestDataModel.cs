@@ -8,5 +8,10 @@ namespace ObjectDatabase.Tests.Models
         [IgnoreProperty] public int Id { get; set; } = 123456;
 
         [SerializeProperty("loc")] public string Location { get; set; } = "USA";
+
+        public string JobId { get; set; }
+
+        [IgnoreProperty, UnionTarget(nameof(JobId))]
+        public JobDataModel Job { get; set; }
     }
 }
