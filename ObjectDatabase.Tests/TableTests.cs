@@ -52,29 +52,5 @@ namespace ObjectDatabase.Tests
 
             database.Dispose();
         }
-
-        [Test]
-        public void ClassInClassTest()
-        {
-            ObjectDatabase database = new ObjectDatabase("ObjectDatabase.accdb");
-            DataTable<ClassInClassDataModel> table = new DataTable<ClassInClassDataModel>("ClassInClassTest");
-            database.AddTable(table);
-
-            table.Delete(model => true);
-
-            table.Insert(new ClassInClassDataModel
-            {
-                Name = "HogeProject",
-                Description = "HogeHoge",
-                TaskId = "011",
-                Task = new ClassInClassDataModel.WorkTask
-                {
-                    Name = "HugaTask",
-                    Description = "HugaHuga"
-                }
-            });
-
-            database.Dispose();
-        }
     }
 }

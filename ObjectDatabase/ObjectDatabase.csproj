@@ -46,7 +46,6 @@
     <Compile Include="ISerializedData.cs" />
     <Compile Include="ObjectDatabase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RelationPropertyAttribute.cs" />
     <Compile Include="SerializedData.cs" />
     <Compile Include="SerializePropertyAttribute.cs" />
   </ItemGroup>
