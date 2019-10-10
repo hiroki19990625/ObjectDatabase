@@ -7,6 +7,8 @@ namespace ObjectDatabase
     /// </summary>
     public interface ISerializedData
     {
+        bool IsKey { get; }
+        bool RelationKey { get; }
         string Name { get; }
         TypeCode TypeCode { get; }
         object Value { get; }

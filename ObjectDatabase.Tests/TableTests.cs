@@ -42,24 +42,17 @@ namespace ObjectDatabase.Tests
             stopwatch.Stop();
             Console.WriteLine($"Insert {stopwatch.ElapsedMilliseconds}ms");
 
-            try
-            {
-                stopwatch = Stopwatch.StartNew();
-                table.ToArray()[0].Age = 21;
-                table.Sync();
-                stopwatch.Stop();
-                Console.WriteLine($"Sync {stopwatch.ElapsedMilliseconds}ms");
-            }
-            catch
-            {
-                // ignored
-            }
+            stopwatch = Stopwatch.StartNew();
+            table.ToArray()[0].Age = 21;
+            table.Sync();
+            stopwatch.Stop();
+            Console.WriteLine($"Sync {stopwatch.ElapsedMilliseconds}ms");
 
             stopwatch = Stopwatch.StartNew();
             DataTable<JobDataModel> table2 = new DataTable<JobDataModel>("Job");
             database.AddTable(table2);
             table.Union(table2);
-            table2.ToArray()[1].Name = "#Earth";
+            table2.Where(model => model.Name == "Earth").First().Name = "#Earth";
             table.ToArray()[0].Job.Name = "Earth";
             Console.WriteLine($"Union {stopwatch.ElapsedMilliseconds}ms");
 
@@ -68,14 +61,7 @@ namespace ObjectDatabase.Tests
             Assert.True(table.Select(model => model.Job).First().Name == "Earth");
             Assert.True(table2.Select(model => model.Name).ToArray()[1] == "Earth");
 
-            try
-            {
-                database.Dispose();
-            }
-            catch
-            {
-                // ignored
-            }
+            database.Dispose();
         }
     }
 }

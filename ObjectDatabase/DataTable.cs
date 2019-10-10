@@ -266,8 +266,17 @@ namespace ObjectDatabase
             {
                 Dictionary<string, ISerializedData> serializedData = dataModel.Serialize();
                 string cmd = $"update {Name} set";
+                bool foundRelationKey = false;
+                KeyValuePair<string, ISerializedData> relationKey = default;
                 foreach (KeyValuePair<string, ISerializedData> data in serializedData)
                 {
+                    if (data.Value.RelationKey)
+                    {
+                        foundRelationKey = true;
+                        relationKey = data;
+                        continue;
+                    }
+
                     if (data.Value.TypeCode == TypeCode.String)
                         cmd += $" {data.Key}='{data.Value.Value}',";
                     else
@@ -275,6 +284,12 @@ namespace ObjectDatabase
                 }
 
                 OleDbCommand command = new OleDbCommand(cmd.Remove(cmd.Length - 1, 1), _connection);
+                if (foundRelationKey)
+                    if (relationKey.Value.TypeCode == TypeCode.String)
+                        command.CommandText += $" where {relationKey.Key} = '{relationKey.Value.Value}'";
+                    else
+                        command.CommandText += $" where {relationKey.Key} = {relationKey.Value.Value}";
+
                 commands.Add(command);
             }
 

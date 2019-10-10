@@ -18,6 +18,11 @@ namespace ObjectDatabase
         /// </summary>
         public bool IsKey { get; set; }
 
+        /// <summary>
+        /// リレーションが設定されているキーかどうか
+        /// </summary>
+        public bool RelationKey { get; set; }
+
         public SerializePropertyAttribute(string name)
         {
             Name = name;

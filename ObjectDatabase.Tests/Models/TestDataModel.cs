@@ -2,7 +2,9 @@ namespace ObjectDatabase.Tests.Models
 {
     public class TestDataModel : DataModel
     {
+        [SerializeProperty("Name", IsKey = true, RelationKey = false)]
         public string Name { get; set; } = "Bob";
+
         public int Age { get; set; } = 12;
 
         [IgnoreProperty] public int Id { get; set; } = 123456;

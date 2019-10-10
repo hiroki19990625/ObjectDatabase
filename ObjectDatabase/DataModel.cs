@@ -28,7 +28,7 @@ namespace ObjectDatabase
                     SerializePropertyAttribute propData = property.GetCustomAttribute<SerializePropertyAttribute>();
                     properties.Add(propData != null ? propData.Name : property.Name,
                         new SerializedData(property.Name, Type.GetTypeCode(property.PropertyType),
-                            property.GetValue(this)));
+                            property.GetValue(this), propData?.IsKey ?? false, propData?.RelationKey ?? false));
                 }
                 catch
                 {
