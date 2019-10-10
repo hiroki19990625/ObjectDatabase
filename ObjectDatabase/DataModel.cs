@@ -30,9 +30,9 @@ namespace ObjectDatabase
                         new SerializedData(property.Name, Type.GetTypeCode(property.PropertyType),
                             property.GetValue(this), propData?.IsKey ?? false, propData?.RelationKey ?? false));
                 }
-                catch
+                catch (Exception e)
                 {
-                    // ignored
+                    ObjectDatabase._logger.Warn($"SerializeWarning {e.Message}");
                 }
             }
 
@@ -67,7 +67,7 @@ namespace ObjectDatabase
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e);
+                    ObjectDatabase._logger.Warn($"DeserializeWarning {e.Message}");
                 }
             }
         }

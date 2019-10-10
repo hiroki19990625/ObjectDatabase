@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data.OleDb;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 
@@ -44,6 +45,7 @@ namespace ObjectDatabase
         {
             _connection = connection;
 
+            Stopwatch sw = Stopwatch.StartNew();
             OleDbCommand command = new OleDbCommand(string.Format(FetchQuery, Name), connection);
             OleDbDataReader reader = command.ExecuteReader();
             while (reader.Read())
@@ -61,6 +63,10 @@ namespace ObjectDatabase
                 _data.Add(dataModel);
             }
 
+            sw.Stop();
+            ObjectDatabase._logger.QueryLog($"Fetch Exec Query {command.CommandText}");
+            ObjectDatabase._logger.OperationLog($"Fetch {sw.ElapsedMilliseconds}ms");
+
             reader.Close();
             command.Dispose();
         }
@@ -71,6 +77,9 @@ namespace ObjectDatabase
         /// <param name="models">挿入するデータ</param>
         public void Insert(params T[] models)
         {
+            Stopwatch sw = Stopwatch.StartNew();
+
+            bool s = false;
             OleDbCommand[] commands = CreateInsertCommands(models);
             int idx = 0;
 
@@ -79,6 +88,8 @@ namespace ObjectDatabase
             {
                 foreach (OleDbCommand oleDbCommand in commands)
                 {
+                    ObjectDatabase._logger.QueryLog($"Insert Exec Query {oleDbCommand.CommandText}");
+
                     oleDbCommand.Transaction = transaction;
                     int c = oleDbCommand.ExecuteNonQuery();
                     if (c == 1)
@@ -87,12 +98,20 @@ namespace ObjectDatabase
                     transaction.Commit();
                     oleDbCommand.Dispose();
                 }
+
+                s = true;
             }
-            catch
+            catch (Exception e)
             {
                 transaction.Rollback();
-                Console.WriteLine("Rollback!");
+                ObjectDatabase._logger.Error($"Insert Rollback! {e.Message}");
             }
+
+            sw.Stop();
+            if (s)
+                ObjectDatabase._logger.OperationLog($"Insert {sw.ElapsedMilliseconds}ms - count: {idx}");
+            else
+                ObjectDatabase._logger.OperationLog($"Insert Rollback {sw.ElapsedMilliseconds}ms");
 
             transaction.Dispose();
         }
@@ -104,15 +123,20 @@ namespace ObjectDatabase
         /// <returns>データベースの変更数</returns>
         public int Delete(Func<T, bool> where)
         {
+            Stopwatch sw = Stopwatch.StartNew();
+
             T[] models = _data.Where(where).ToArray();
             int count = 0;
             int idx = 0;
+            bool s = false;
             OleDbTransaction transaction = _connection.BeginTransaction();
             OleDbCommand[] cmds = CreateDeleteCommands(models);
             try
             {
                 foreach (T model in models)
                 {
+                    ObjectDatabase._logger.QueryLog($"Insert Exec Query {cmds[idx].CommandText}");
+
                     cmds[idx].Transaction = transaction;
                     cmds[idx++].ExecuteNonQuery();
                     _data.Remove(model);
@@ -120,12 +144,20 @@ namespace ObjectDatabase
 
                     transaction.Commit();
                 }
+
+                s = true;
             }
-            catch
+            catch (Exception e)
             {
                 transaction.Rollback();
-                Console.WriteLine("Rollback!");
+                ObjectDatabase._logger.Error($"Delete Rollback! {e.Message}");
             }
+
+            sw.Stop();
+            if (s)
+                ObjectDatabase._logger.OperationLog($"Delete {sw.ElapsedMilliseconds}ms - count: {idx}");
+            else
+                ObjectDatabase._logger.OperationLog($"Delete Rollback {sw.ElapsedMilliseconds}ms");
 
             transaction.Dispose();
 
@@ -134,6 +166,8 @@ namespace ObjectDatabase
 
         public void Union<TUnionTarget>(DataTable<TUnionTarget> table) where TUnionTarget : IDataModel, new()
         {
+            Stopwatch sw = Stopwatch.StartNew();
+
             Type t = typeof(TUnionTarget);
             Type myT = typeof(T);
             string unionField = null;
@@ -170,9 +204,16 @@ namespace ObjectDatabase
                                 }
                             }
                         }
+
+                        sw.Stop();
+                        ObjectDatabase._logger.OperationLog($"Success Union {sw.ElapsedMilliseconds}ms");
+                        return;
                     }
                 }
             }
+
+            sw.Stop();
+            ObjectDatabase._logger.OperationLog($"Failed Union {sw.ElapsedMilliseconds}ms");
         }
 
         public IEnumerable<TResult> Select<TResult>(Func<T, TResult> select)
@@ -195,11 +236,19 @@ namespace ObjectDatabase
         /// </summary>
         public void Sync()
         {
+            Stopwatch sw = Stopwatch.StartNew();
+
             OleDbCommand[] cmds = CreateUpdateCommands();
+            int c = 0;
             foreach (OleDbCommand cmd in cmds)
             {
+                ObjectDatabase._logger.QueryLog($"Sync Exec Query {cmd.CommandText}");
                 cmd.ExecuteNonQuery();
+                c++;
             }
+
+            sw.Stop();
+            ObjectDatabase._logger.OperationLog($"Sync {sw.ElapsedMilliseconds}ms - count: {c}");
         }
 
         private OleDbCommand[] CreateInsertCommands(T[] models)

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.OleDb;
+using LogAdapter;
 
 namespace ObjectDatabase
 {
@@ -9,6 +10,8 @@ namespace ObjectDatabase
     /// </summary>
     public class ObjectDatabase : IDisposable
     {
+        internal static ILogger _logger = new LogAdapter.LogAdapter().Create();
+
         private readonly Dictionary<string, IDataTable> _tables = new Dictionary<string, IDataTable>();
 
         private readonly OleDbConnection _connection;
@@ -20,15 +23,24 @@ namespace ObjectDatabase
         /// </summary>
         /// <param name="file">Accessファイル</param>
         /// <param name="version">プロバイダーのバージョン</param>
-        public ObjectDatabase(string file, string version = "12.0", string fetchQuery = "select * from {0}")
+        public ObjectDatabase(string file, string version = "12.0", string fetchQuery = "select * from {0}",
+            Action<ILogMessage> logCallback = null)
         {
+            if (logCallback != null)
+                AddLogEvent(logCallback);
+
             _fetchQuery = fetchQuery;
+
+            _logger.Info($"Hello ObjectDatabase Version: {typeof(ObjectDatabase).Assembly.GetName().Version}");
 
             _connection = new OleDbConnection
             {
                 ConnectionString = $"Provider=Microsoft.ACE.OLEDB.{version}; Data Source={file}"
             };
             _connection.Open();
+
+            _logger.Info($"Connected OleDB!");
+            _logger.Debug($"Used Provider > Microsoft.ACE.OLEDB.{version}; Data Source={file}");
         }
 
         /// <summary>
@@ -47,6 +59,8 @@ namespace ObjectDatabase
         /// <param name="dataTable">データテーブル</param>
         public void AddTable(string name, IDataTable dataTable)
         {
+            _logger.Info($"Subscribe {name} Table");
+
             _tables[dataTable.Name] = dataTable;
             dataTable.FetchQuery = _fetchQuery;
             dataTable.Fetch(_connection);
@@ -62,14 +76,40 @@ namespace ObjectDatabase
             return _tables[name];
         }
 
+        public void AddLogEvent(Action<ILogMessage> callback)
+        {
+            _logger.AddCallback(callback);
+        }
+
+        public void RemoveLogEvent(Action<ILogMessage> callback)
+        {
+            _logger.RemoveCallback(callback);
+        }
+
         public void Dispose()
         {
+            _logger.Info("Goodbye ObjectDatabase!");
+            _logger.Debug("Close Tables");
+
             foreach (KeyValuePair<string, IDataTable> dataTable in _tables)
             {
                 dataTable.Value.Sync();
             }
 
             _connection.Close();
+        }
+    }
+
+    internal static class ObjectDatabaseExtensions
+    {
+        internal static void QueryLog(this ILogger logger, string query)
+        {
+            logger.Log("Query", query);
+        }
+
+        internal static void OperationLog(this ILogger logger, string operation)
+        {
+            logger.Log("Operation", operation);
         }
     }
 }
