@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>ObjectDatabase</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>hiroki</authors>
+    <owners>hiroki</owners>
+    <licenseUrl>https://github.com/hiroki19990625/ObjectDatabase/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/hiroki19990625/ObjectDatabase</projectUrl>
+    <!-- iconUrl></iconUrl -->
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Access OLEDB Library.</description>
+    <releaseNotes></releaseNotes>
+    <copyright>Copyright 2019 hiroki</copyright>
+    <tags>OLEDB Database Access</tags>
+  </metadata>
+</package>
