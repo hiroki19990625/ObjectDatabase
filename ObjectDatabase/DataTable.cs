@@ -82,14 +82,13 @@ namespace ObjectDatabase
             bool s = false;
             OleDbCommand[] commands = CreateInsertCommands(models);
             int idx = 0;
-
-            OleDbTransaction transaction = _connection.BeginTransaction();
-            try
+            foreach (OleDbCommand oleDbCommand in commands)
             {
-                foreach (OleDbCommand oleDbCommand in commands)
-                {
-                    ObjectDatabase._logger.QueryLog($"Insert Exec Query {oleDbCommand.CommandText}");
+                ObjectDatabase._logger.QueryLog($"Insert Exec Query {oleDbCommand.CommandText}");
 
+                OleDbTransaction transaction = _connection.BeginTransaction();
+                try
+                {
                     oleDbCommand.Transaction = transaction;
                     int c = oleDbCommand.ExecuteNonQuery();
                     if (c == 1)
@@ -98,22 +97,17 @@ namespace ObjectDatabase
                     transaction.Commit();
                     oleDbCommand.Dispose();
                 }
+                catch (Exception e)
+                {
+                    transaction.Rollback();
+                    ObjectDatabase._logger.Error($"Insert Rollback! {e.Message}");
+                }
 
-                s = true;
-            }
-            catch (Exception e)
-            {
-                transaction.Rollback();
-                ObjectDatabase._logger.Error($"Insert Rollback! {e.Message}");
+                transaction.Dispose();
             }
 
             sw.Stop();
-            if (s)
-                ObjectDatabase._logger.OperationLog($"Insert {sw.ElapsedMilliseconds}ms - count: {idx}");
-            else
-                ObjectDatabase._logger.OperationLog($"Insert Rollback {sw.ElapsedMilliseconds}ms");
-
-            transaction.Dispose();
+            ObjectDatabase._logger.OperationLog($"Insert {sw.ElapsedMilliseconds}ms - count: {idx}");
         }
 
         /// <summary>
@@ -128,15 +122,14 @@ namespace ObjectDatabase
             T[] models = _data.Where(where).ToArray();
             int count = 0;
             int idx = 0;
-            bool s = false;
-            OleDbTransaction transaction = _connection.BeginTransaction();
             OleDbCommand[] cmds = CreateDeleteCommands(models);
-            try
+            foreach (T model in models)
             {
-                foreach (T model in models)
-                {
-                    ObjectDatabase._logger.QueryLog($"Delete Exec Query {cmds[idx].CommandText}");
+                ObjectDatabase._logger.QueryLog($"Delete Exec Query {cmds[idx].CommandText}");
 
+                OleDbTransaction transaction = _connection.BeginTransaction();
+                try
+                {
                     OleDbCommand command = cmds[idx++];
                     command.Transaction = transaction;
                     command.ExecuteNonQuery();
@@ -146,22 +139,17 @@ namespace ObjectDatabase
                     transaction.Commit();
                     command.Dispose();
                 }
+                catch (Exception e)
+                {
+                    transaction.Rollback();
+                    ObjectDatabase._logger.Error($"Delete Rollback! {e.Message}");
+                }
 
-                s = true;
-            }
-            catch (Exception e)
-            {
-                transaction.Rollback();
-                ObjectDatabase._logger.Error($"Delete Rollback! {e.Message}");
+                transaction.Dispose();
             }
 
             sw.Stop();
-            if (s)
-                ObjectDatabase._logger.OperationLog($"Delete {sw.ElapsedMilliseconds}ms - count: {idx}");
-            else
-                ObjectDatabase._logger.OperationLog($"Delete Rollback {sw.ElapsedMilliseconds}ms");
-
-            transaction.Dispose();
+            ObjectDatabase._logger.OperationLog($"Delete {sw.ElapsedMilliseconds}ms - count: {idx}");
 
             return count;
         }
@@ -245,8 +233,18 @@ namespace ObjectDatabase
             foreach (OleDbCommand cmd in cmds)
             {
                 ObjectDatabase._logger.QueryLog($"Sync Exec Query {cmd.CommandText}");
-                cmd.ExecuteNonQuery();
-                c++;
+
+                OleDbTransaction transaction = _connection.BeginTransaction();
+                try
+                {
+                    cmd.ExecuteNonQuery();
+                    c++;
+                }
+                catch (Exception e)
+                {
+                    transaction.Rollback();
+                    ObjectDatabase._logger.Error($"Delete Rollback! {e.Message}");
+                }
             }
 
             sw.Stop();
