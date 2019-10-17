@@ -154,7 +154,8 @@ namespace ObjectDatabase
             return count;
         }
 
-        public void Union<TUnionTarget>(DataTable<TUnionTarget> table) where TUnionTarget : IDataModel, new()
+        public void Union<TUnionTarget>(DataTable<TUnionTarget> table, string additionalWhere = null)
+            where TUnionTarget : IDataModel, new()
         {
             Stopwatch sw = Stopwatch.StartNew();
 
@@ -165,6 +166,12 @@ namespace ObjectDatabase
                 .FirstOrDefault(prop =>
                 {
                     UnionTargetAttribute att = prop.GetCustomAttribute<UnionTargetAttribute>();
+                    if (att != null && att.FieldName == additionalWhere)
+                    {
+                        unionField = att.FieldName;
+                        return true;
+                    }
+
                     if (att != null)
                     {
                         unionField = att.FieldName;
