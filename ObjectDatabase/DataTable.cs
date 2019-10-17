@@ -166,13 +166,13 @@ namespace ObjectDatabase
                 .FirstOrDefault(prop =>
                 {
                     UnionTargetAttribute att = prop.GetCustomAttribute<UnionTargetAttribute>();
-                    if (att != null && att.FieldName == additionalWhere)
+                    if (att != null && !string.IsNullOrWhiteSpace(additionalWhere) && att.FieldName == additionalWhere)
                     {
                         unionField = att.FieldName;
                         return true;
                     }
 
-                    if (att != null)
+                    if (att != null && additionalWhere == null)
                     {
                         unionField = att.FieldName;
                         return true;
@@ -244,14 +244,21 @@ namespace ObjectDatabase
                 OleDbTransaction transaction = _connection.BeginTransaction();
                 try
                 {
+                    cmd.Transaction = transaction;
                     cmd.ExecuteNonQuery();
                     c++;
+                    
+                    transaction.Commit();
+                    
+                    cmd.Dispose();
                 }
                 catch (Exception e)
                 {
                     transaction.Rollback();
                     ObjectDatabase._logger.Error($"Delete Rollback! {e.Message}");
                 }
+                
+                transaction.Dispose();
             }
 
             sw.Stop();
