@@ -135,14 +135,16 @@ namespace ObjectDatabase
             {
                 foreach (T model in models)
                 {
-                    ObjectDatabase._logger.QueryLog($"Insert Exec Query {cmds[idx].CommandText}");
+                    ObjectDatabase._logger.QueryLog($"Delete Exec Query {cmds[idx].CommandText}");
 
-                    cmds[idx].Transaction = transaction;
-                    cmds[idx++].ExecuteNonQuery();
+                    OleDbCommand command = cmds[idx++];
+                    command.Transaction = transaction;
+                    command.ExecuteNonQuery();
                     _data.Remove(model);
                     count++;
 
                     transaction.Commit();
+                    command.Dispose();
                 }
 
                 s = true;
