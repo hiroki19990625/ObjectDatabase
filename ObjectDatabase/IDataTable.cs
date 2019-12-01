@@ -7,6 +7,8 @@ namespace ObjectDatabase
         string Name { get; }
         string FetchQuery { get; set; }
 
+        bool AutoSync { get; set; }
+
         void Fetch(OleDbConnection connection);
         void Sync();
     }

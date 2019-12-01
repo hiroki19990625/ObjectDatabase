@@ -23,6 +23,8 @@ namespace ObjectDatabase
 
         public string FetchQuery { get; set; }
 
+        public bool AutoSync { get; set; } = true;
+
         /// <summary>
         /// テーブルに格納されているデータ数
         /// </summary>
@@ -108,6 +110,9 @@ namespace ObjectDatabase
 
             sw.Stop();
             ObjectDatabase._logger.OperationLog($"Insert {sw.ElapsedMilliseconds}ms - count: {idx}");
+
+            if (AutoSync)
+                Sync();
         }
 
         /// <summary>
@@ -247,9 +252,9 @@ namespace ObjectDatabase
                     cmd.Transaction = transaction;
                     cmd.ExecuteNonQuery();
                     c++;
-                    
+
                     transaction.Commit();
-                    
+
                     cmd.Dispose();
                 }
                 catch (Exception e)
@@ -257,7 +262,7 @@ namespace ObjectDatabase
                     transaction.Rollback();
                     ObjectDatabase._logger.Error($"Delete Rollback! {e.Message}");
                 }
-                
+
                 transaction.Dispose();
             }
 
@@ -308,7 +313,8 @@ namespace ObjectDatabase
                 string cmd = $"delete from {Name} where ";
                 foreach (KeyValuePair<string, ISerializedData> serializedData in fields)
                 {
-                    if (serializedData.Value.TypeCode == TypeCode.String)
+                    if (serializedData.Value.TypeCode == TypeCode.String ||
+                        serializedData.Value.TypeCode == TypeCode.DateTime)
                         cmd += $"{serializedData.Key} = '{serializedData.Value.Value}' AND ";
                     else
                         cmd += $"{serializedData.Key} = {serializedData.Value.Value} AND ";
@@ -340,7 +346,8 @@ namespace ObjectDatabase
                         continue;
                     }
 
-                    if (data.Value.TypeCode == TypeCode.String)
+                    if (data.Value.TypeCode == TypeCode.String ||
+                        data.Value.TypeCode == TypeCode.DateTime)
                         cmd += $" {data.Key}='{data.Value.Value}',";
                     else
                         cmd += $" {data.Key}={data.Value.Value},";
@@ -348,7 +355,8 @@ namespace ObjectDatabase
 
                 OleDbCommand command = new OleDbCommand(cmd.Remove(cmd.Length - 1, 1), _connection);
                 if (foundRelationKey)
-                    if (relationKey.Value.TypeCode == TypeCode.String)
+                    if (relationKey.Value.TypeCode == TypeCode.String ||
+                        relationKey.Value.TypeCode == TypeCode.DateTime)
                         command.CommandText += $" where {relationKey.Key} = '{relationKey.Value.Value}'";
                     else
                         command.CommandText += $" where {relationKey.Key} = {relationKey.Value.Value}";
