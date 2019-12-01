@@ -16,20 +16,15 @@ namespace ObjectDatabase
 
         private readonly OleDbConnection _connection;
 
-        private readonly string _fetchQuery;
-
         /// <summary>
         /// Accessファイルを指定してデータベースを開始します。
         /// </summary>
         /// <param name="file">Accessファイル</param>
         /// <param name="version">プロバイダーのバージョン</param>
-        public ObjectDatabase(string file, string version = "12.0", string fetchQuery = "select * from {0}",
-            Action<ILogMessage> logCallback = null)
+        public ObjectDatabase(string file, string version = "12.0", Action<ILogMessage> logCallback = null)
         {
             if (logCallback != null)
                 AddLogEvent(logCallback);
-
-            _fetchQuery = fetchQuery;
 
             _logger.Info($"Hello ObjectDatabase Version: {typeof(ObjectDatabase).Assembly.GetName().Version}");
 
@@ -47,9 +42,9 @@ namespace ObjectDatabase
         /// テーブルの管理を開始します。
         /// </summary>
         /// <param name="dataTable">データテーブル</param>
-        public void AddTable(IDataTable dataTable)
+        public void AddTable(IDataTable dataTable, string fetchQuery = "select * from {0}")
         {
-            AddTable(dataTable.Name, dataTable);
+            AddTable(dataTable.Name, dataTable, fetchQuery);
         }
 
         /// <summary>
@@ -57,12 +52,12 @@ namespace ObjectDatabase
         /// </summary>
         /// <param name="name">テーブル名</param>
         /// <param name="dataTable">データテーブル</param>
-        public void AddTable(string name, IDataTable dataTable)
+        public void AddTable(string name, IDataTable dataTable, string fetchQuery = "select * from {0}")
         {
             _logger.Info($"Subscribe {name} Table");
 
             _tables[dataTable.Name] = dataTable;
-            dataTable.FetchQuery = _fetchQuery;
+            dataTable.FetchQuery = fetchQuery;
             dataTable.Fetch(_connection);
         }
 
