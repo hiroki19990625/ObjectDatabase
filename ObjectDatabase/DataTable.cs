@@ -156,6 +156,9 @@ namespace ObjectDatabase
             sw.Stop();
             ObjectDatabase._logger.OperationLog($"Delete {sw.ElapsedMilliseconds}ms - count: {idx}");
 
+            if (AutoSync)
+                Sync();
+
             return count;
         }
 
