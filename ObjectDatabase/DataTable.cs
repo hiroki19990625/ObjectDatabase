@@ -21,8 +21,14 @@ namespace ObjectDatabase
         /// </summary>
         public string Name { get; }
 
+        /// <summary>
+        /// データベースからデータをフェッチする際のクエリコマンドを設定します。
+        /// </summary>
         public string FetchQuery { get; set; }
 
+        /// <summary>
+        /// true にすると、データベースへの同期を自動で行います。
+        /// </summary>
         public bool AutoSync { get; set; } = true;
 
         /// <summary>
@@ -84,6 +90,7 @@ namespace ObjectDatabase
             bool s = false;
             OleDbCommand[] commands = CreateInsertCommands(models);
             int idx = 0;
+            //TODO: コマンドを一つだけ使うように変更する
             foreach (OleDbCommand oleDbCommand in commands)
             {
                 ObjectDatabase._logger.QueryLog($"Insert Exec Query {oleDbCommand.CommandText}");
@@ -128,6 +135,7 @@ namespace ObjectDatabase
             int count = 0;
             int idx = 0;
             OleDbCommand[] cmds = CreateDeleteCommands(models);
+            //TODO: コマンドを一つだけ使うように変更する
             foreach (T model in models)
             {
                 ObjectDatabase._logger.QueryLog($"Delete Exec Query {cmds[idx].CommandText}");
@@ -162,6 +170,12 @@ namespace ObjectDatabase
             return count;
         }
 
+        /// <summary>
+        /// 他のテーブルのデータと結合します。
+        /// </summary>
+        /// <param name="table">結合するテーブル</param>
+        /// <param name="additionalWhere">追加の条件を絞り込み</param>
+        /// <typeparam name="TUnionTarget">結合するテーブルの型</typeparam>
         public void Union<TUnionTarget>(DataTable<TUnionTarget> table, string additionalWhere = null)
             where TUnionTarget : IDataModel, new()
         {
@@ -221,16 +235,31 @@ namespace ObjectDatabase
             ObjectDatabase._logger.OperationLog($"Failed Union {sw.ElapsedMilliseconds}ms");
         }
 
+        /// <summary>
+        /// linqを用いた select(列選択) を行います。
+        /// </summary>
+        /// <param name="select"></param>
+        /// <typeparam name="TResult"></typeparam>
+        /// <returns>選択した結果</returns>
         public IEnumerable<TResult> Select<TResult>(Func<T, TResult> select)
         {
             return _data.Select(select);
         }
 
+        /// <summary>
+        /// linqを用いた　where(条件絞り込み) を行います。
+        /// </summary>
+        /// <param name="predicate"></param>
+        /// <returns>条件絞り込みの結果</returns>
         public IEnumerable<T> Where(Func<T, bool> predicate)
         {
             return _data.Where(predicate);
         }
 
+        /// <summary>
+        /// テーブルのデータを配列にして返します。
+        /// </summary>
+        /// <returns>テーブルの全てのデータ</returns>
         public T[] ToArray()
         {
             return _data.ToArray();
@@ -244,6 +273,7 @@ namespace ObjectDatabase
             Stopwatch sw = Stopwatch.StartNew();
 
             OleDbCommand[] cmds = CreateUpdateCommands();
+            //TODO: コマンドを一つだけ使うように変更する
             int c = 0;
             foreach (OleDbCommand cmd in cmds)
             {
@@ -273,6 +303,7 @@ namespace ObjectDatabase
             ObjectDatabase._logger.OperationLog($"Sync {sw.ElapsedMilliseconds}ms - count: {c}");
         }
 
+        //TODO: StringBuilderを使う & 高速化
         private OleDbCommand[] CreateInsertCommands(T[] models)
         {
             List<OleDbCommand> cmds = new List<OleDbCommand>();
@@ -307,6 +338,7 @@ namespace ObjectDatabase
             return cmds.ToArray();
         }
 
+        //TODO: StringBuilderを使う & 高速化
         private OleDbCommand[] CreateDeleteCommands(IEnumerable<T> it)
         {
             List<OleDbCommand> cmds = new List<OleDbCommand>();
@@ -331,6 +363,7 @@ namespace ObjectDatabase
             return cmds.ToArray();
         }
 
+        //TODO: StringBuilderを使う & 高速化
         private OleDbCommand[] CreateUpdateCommands()
         {
             List<OleDbCommand> commands = new List<OleDbCommand>();
