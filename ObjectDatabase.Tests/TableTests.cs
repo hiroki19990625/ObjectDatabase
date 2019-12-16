@@ -46,6 +46,8 @@ namespace ObjectDatabase.Tests
             Assert.True(table.Select(model => model.Age).First() == 21);
             Assert.True(table.Select(model => model.Job).First().Name == "Earth");
             Assert.True(table2.Select(model => model.Name).ToArray()[1] == "Earth");
+            
+            database.GenerateCode("Database");
 
             database.Dispose();
         }
