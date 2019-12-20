@@ -67,7 +67,7 @@ namespace ObjectDatabase
                             reader.GetValue(i)));
                 }
 
-                T dataModel = new T();
+                T dataModel = ModelFactory<T>.Factory();
                 dataModel.Deserialize(serializedData);
                 _data.Add(dataModel);
             }

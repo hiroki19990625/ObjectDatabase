@@ -48,6 +48,7 @@
     <Compile Include="IDataTable.cs" />
     <Compile Include="IgnorePropertyAttribute.cs" />
     <Compile Include="ISerializedData.cs" />
+    <Compile Include="ModelFactory.cs" />
     <Compile Include="ObjectDatabase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SerializedData.cs" />
