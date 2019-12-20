@@ -4,6 +4,7 @@ using System.Data.OleDb;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 
 namespace ObjectDatabase
 {
@@ -66,7 +67,7 @@ namespace ObjectDatabase
                             reader.GetValue(i)));
                 }
 
-                T dataModel = new T();
+                T dataModel = ModelFactory<T>.Factory();
                 dataModel.Deserialize(serializedData);
                 _data.Add(dataModel);
             }
@@ -87,33 +88,42 @@ namespace ObjectDatabase
         {
             Stopwatch sw = Stopwatch.StartNew();
 
-            bool s = false;
-            OleDbCommand[] commands = CreateInsertCommands(models);
+            bool s = true;
+            string[] commands = CreateInsertCommands(models);
             int idx = 0;
-            //TODO: コマンドを一つだけ使うように変更する
-            foreach (OleDbCommand oleDbCommand in commands)
+            OleDbCommand cmd = new OleDbCommand
             {
-                ObjectDatabase._logger.QueryLog($"Insert Exec Query {oleDbCommand.CommandText}");
+                Connection = _connection
+            };
 
-                OleDbTransaction transaction = _connection.BeginTransaction();
+            OleDbTransaction transaction = _connection.BeginTransaction();
+            foreach (string command in commands)
+            {
+                ObjectDatabase._logger.QueryLog($"Insert Exec Query {command}");
+
                 try
                 {
-                    oleDbCommand.Transaction = transaction;
-                    int c = oleDbCommand.ExecuteNonQuery();
+                    cmd.Transaction = transaction;
+                    cmd.CommandText = command;
+                    int c = cmd.ExecuteNonQuery();
                     if (c == 1)
                         _data.Add(models[idx++]);
-
-                    transaction.Commit();
-                    oleDbCommand.Dispose();
                 }
                 catch (Exception e)
                 {
                     transaction.Rollback();
                     ObjectDatabase._logger.Error($"Insert Rollback! {e.Message}");
-                }
 
-                transaction.Dispose();
+                    s = false;
+                    break;
+                }
             }
+
+            if (s)
+                transaction.Commit();
+            transaction.Dispose();
+
+            cmd.Dispose();
 
             sw.Stop();
             ObjectDatabase._logger.OperationLog($"Insert {sw.ElapsedMilliseconds}ms - count: {idx}");
@@ -134,32 +144,41 @@ namespace ObjectDatabase
             T[] models = _data.Where(where).ToArray();
             int count = 0;
             int idx = 0;
-            OleDbCommand[] cmds = CreateDeleteCommands(models);
-            //TODO: コマンドを一つだけ使うように変更する
+            string[] cmds = CreateDeleteCommands(models);
+            OleDbCommand command = new OleDbCommand
+            {
+                Connection = _connection
+            };
+            bool s = true;
+
+            OleDbTransaction transaction = _connection.BeginTransaction();
             foreach (T model in models)
             {
-                ObjectDatabase._logger.QueryLog($"Delete Exec Query {cmds[idx].CommandText}");
+                ObjectDatabase._logger.QueryLog($"Delete Exec Query {cmds[idx]}");
 
-                OleDbTransaction transaction = _connection.BeginTransaction();
                 try
                 {
-                    OleDbCommand command = cmds[idx++];
                     command.Transaction = transaction;
+                    command.CommandText = cmds[idx++];
                     command.ExecuteNonQuery();
                     _data.Remove(model);
                     count++;
-
-                    transaction.Commit();
-                    command.Dispose();
                 }
                 catch (Exception e)
                 {
                     transaction.Rollback();
                     ObjectDatabase._logger.Error($"Delete Rollback! {e.Message}");
-                }
 
-                transaction.Dispose();
+                    s = false;
+                    break;
+                }
             }
+
+            if (s)
+                transaction.Commit();
+            transaction.Dispose();
+
+            command.Dispose();
 
             sw.Stop();
             ObjectDatabase._logger.OperationLog($"Delete {sw.ElapsedMilliseconds}ms - count: {idx}");
@@ -272,105 +291,111 @@ namespace ObjectDatabase
         {
             Stopwatch sw = Stopwatch.StartNew();
 
-            OleDbCommand[] cmds = CreateUpdateCommands();
-            //TODO: コマンドを一つだけ使うように変更する
+            bool s = true;
+            string[] cmds = CreateUpdateCommands();
             int c = 0;
-            foreach (OleDbCommand cmd in cmds)
+            OleDbCommand cmd = new OleDbCommand
             {
-                ObjectDatabase._logger.QueryLog($"Sync Exec Query {cmd.CommandText}");
+                Connection = _connection
+            };
 
-                OleDbTransaction transaction = _connection.BeginTransaction();
+            OleDbTransaction transaction = _connection.BeginTransaction();
+            foreach (string command in cmds)
+            {
+                ObjectDatabase._logger.QueryLog($"Sync Exec Query {command}");
+
                 try
                 {
                     cmd.Transaction = transaction;
+                    cmd.CommandText = command;
                     cmd.ExecuteNonQuery();
                     c++;
-
-                    transaction.Commit();
-
-                    cmd.Dispose();
                 }
                 catch (Exception e)
                 {
                     transaction.Rollback();
                     ObjectDatabase._logger.Error($"Delete Rollback! {e.Message}");
+                    s = false;
+                    break;
                 }
-
-                transaction.Dispose();
             }
+
+            if (s)
+                transaction.Commit();
+            transaction.Dispose();
+
+            cmd.Dispose();
 
             sw.Stop();
             ObjectDatabase._logger.OperationLog($"Sync {sw.ElapsedMilliseconds}ms - count: {c}");
         }
 
-        //TODO: StringBuilderを使う & 高速化
-        private OleDbCommand[] CreateInsertCommands(T[] models)
+        private string[] CreateInsertCommands(T[] models)
         {
-            List<OleDbCommand> cmds = new List<OleDbCommand>();
+            List<string> cmds = new List<string>();
+            StringBuilder builder = new StringBuilder();
             foreach (T model in models)
             {
                 var fields = model.Serialize();
-                string cmd = $"insert into {Name} (";
+                builder.Append($"insert into {Name} (");
                 foreach (KeyValuePair<string, ISerializedData> field in fields)
                 {
-                    cmd += field.Key + ", ";
+                    builder.Append($"{field.Key}, ");
                 }
 
-                var remove = cmd.Remove(cmd.Length - 2, 2);
-                cmd = remove + ") values(";
+                builder.Remove(builder.Length - 2, 2);
+                builder.Append($") values(");
                 foreach (KeyValuePair<string, ISerializedData> field in fields)
                 {
-                    cmd += "?, ";
+                    if (field.Value.TypeCode == TypeCode.String || field.Value.TypeCode == TypeCode.DateTime)
+                        builder.Append($"'{field.Value.Value}', ");
+                    else
+                        builder.Append($"{field.Value.Value}, ");
                 }
 
-                remove = cmd.Remove(cmd.Length - 2, 2);
-                cmd = remove + ")";
+                builder.Remove(builder.Length - 2, 2);
+                builder.Append(")");
 
-                OleDbCommand command = new OleDbCommand(cmd, _connection);
-                foreach (KeyValuePair<string, ISerializedData> serializedData in fields)
-                {
-                    command.Parameters.Add(new OleDbParameter(serializedData.Key, serializedData.Value.Value));
-                }
-
-                cmds.Add(command);
+                cmds.Add(builder.ToString());
+                builder.Clear();
             }
 
             return cmds.ToArray();
         }
 
-        //TODO: StringBuilderを使う & 高速化
-        private OleDbCommand[] CreateDeleteCommands(IEnumerable<T> it)
+        private string[] CreateDeleteCommands(IEnumerable<T> it)
         {
-            List<OleDbCommand> cmds = new List<OleDbCommand>();
+            List<string> cmds = new List<string>();
+            StringBuilder builder = new StringBuilder();
             foreach (T model in it)
             {
                 var fields = model.Serialize();
-                string cmd = $"delete from {Name} where ";
+                builder.Append($"delete from {Name} where ");
                 foreach (KeyValuePair<string, ISerializedData> serializedData in fields)
                 {
                     if (serializedData.Value.TypeCode == TypeCode.String ||
                         serializedData.Value.TypeCode == TypeCode.DateTime)
-                        cmd += $"{serializedData.Key} = '{serializedData.Value.Value}' AND ";
+                        builder.Append($"{serializedData.Key} = '{serializedData.Value.Value}' AND ");
                     else
-                        cmd += $"{serializedData.Key} = {serializedData.Value.Value} AND ";
+                        builder.Append($"{serializedData.Key} = {serializedData.Value.Value} AND ");
                 }
 
-                cmd = cmd.Remove(cmd.Length - 4, 4);
-                OleDbCommand command = new OleDbCommand(cmd, _connection);
-                cmds.Add(command);
+                builder.Remove(builder.Length - 4, 4);
+                cmds.Add(builder.ToString());
+                builder.Clear();
             }
 
             return cmds.ToArray();
         }
 
-        //TODO: StringBuilderを使う & 高速化
-        private OleDbCommand[] CreateUpdateCommands()
+        private string[] CreateUpdateCommands()
         {
-            List<OleDbCommand> commands = new List<OleDbCommand>();
+            List<string> commands = new List<string>();
+            StringBuilder builder = new StringBuilder();
             foreach (T dataModel in _data)
             {
                 Dictionary<string, ISerializedData> serializedData = dataModel.Serialize();
-                string cmd = $"update {Name} set";
+                builder.Append($"update {Name} set");
                 bool foundRelationKey = false;
                 KeyValuePair<string, ISerializedData> relationKey = default;
                 foreach (KeyValuePair<string, ISerializedData> data in serializedData)
@@ -384,20 +409,22 @@ namespace ObjectDatabase
 
                     if (data.Value.TypeCode == TypeCode.String ||
                         data.Value.TypeCode == TypeCode.DateTime)
-                        cmd += $" {data.Key}='{data.Value.Value}',";
+                        builder.Append($" {data.Key}='{data.Value.Value}',");
                     else
-                        cmd += $" {data.Key}={data.Value.Value},";
+                        builder.Append($" {data.Key}={data.Value.Value},");
                 }
 
-                OleDbCommand command = new OleDbCommand(cmd.Remove(cmd.Length - 1, 1), _connection);
+                builder.Remove(builder.Length - 1, 1);
+
                 if (foundRelationKey)
                     if (relationKey.Value.TypeCode == TypeCode.String ||
                         relationKey.Value.TypeCode == TypeCode.DateTime)
-                        command.CommandText += $" where {relationKey.Key} = '{relationKey.Value.Value}'";
+                        builder.Append($" where {relationKey.Key} = '{relationKey.Value.Value}'");
                     else
-                        command.CommandText += $" where {relationKey.Key} = {relationKey.Value.Value}";
+                        builder.Append($" where {relationKey.Key} = {relationKey.Value.Value}");
 
-                commands.Add(command);
+                commands.Add(builder.ToString());
+                builder.Clear();
             }
 
             return commands.ToArray();
